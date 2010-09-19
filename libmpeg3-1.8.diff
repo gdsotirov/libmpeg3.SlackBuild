@@ -1,0 +1,512 @@
+# Enable shared library build, dynamiclly link to a52 and libquicktime
+
+diff -N -r -U 3 libmpeg3-1.8-orig/Makefile libmpeg3-1.8/Makefile
+--- libmpeg3-1.8-orig/Makefile	2008-08-07 06:33:09.000000000 +0300
++++ libmpeg3-1.8/Makefile	2010-09-19 14:33:39.000000000 +0300
+@@ -2,199 +2,130 @@
+ NASM = nasm
+ USE_MMX = 0
+ USE_CSS = 1
+-A52DIR := $(shell expr a52dec* )
++PREFIX = /usr
++A52_INCLUDES = /usr/include/a52dec
++LQT_INCLUDES = /usr/include/lqt
+ 
++ARCH = $(shell uname --machine)
+ 
+-ifeq ("$(DST)", "")
+-DST=/usr/bin
+-endif
+-
+-ifeq ($(origin CFLAGS), environment)
+-HAVE_CFLAGS := y
+-else
+-HAVE_CFLAGS := n
+-endif
+-
+-
+-OBJDIR := $(shell uname --machine)
+-
+-
+-
+-
+-ifeq ($(OBJDIR), alpha)
++ifeq ($(ARCH), alpha)
+   USE_MMX = 0
+-  ifneq ($(HAVE_CFLAGS), y)
+-    CFLAGS := -O4 -arch ev67 -ieee -accept c99_keywords -gcc_messages
+-  endif
++  ADD_CFLAGS = -O4 -mieee
+ endif
+ 
+-ifeq ($(OBJDIR), i686)
++ifeq ($(ARCH), i686)
+   USE_MMX = 1
+-  ifneq ($(HAVE_CFLAGS), y)
+-    CFLAGS := -O2 -fomit-frame-pointer -falign-loops=2 -falign-jumps=2 -falign-functions=2 -I/usr/local/include
+-  endif
+-  CFLAGS += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
++  ADD_CFLAGS = -O2 -fomit-frame-pointer -falign-loops=2 -falign-jumps=2 -falign-functions=2 -I/usr/local/include -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+ endif
+ 
+-ifeq ($(OBJDIR), x86_64)
+-  ifneq ($(HAVE_CFLAGS), y)
+-    CFLAGS := -O2 -fomit-frame-pointer -I/usr/local/include
+-  endif
+-  CFLAGS += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+-
+-
++ifeq ($(ARCH), x86_64)
++  ADD_CFLAGS = -O2 -fomit-frame-pointer -I/usr/local/include -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+ endif
+ 
+-
+-
+ ifeq ($(USE_CSS), 1)
+   CFLAGS += -DHAVE_CSS
+ endif
+ 
+ ifeq ($(USE_MMX), 1)
+   CFLAGS += -DHAVE_MMX
+-  ASMOBJS = $(OBJDIR)/video/mmxidct.o
+-  NASMOBJS = $(OBJDIR)/video/reconmmx.o
++  ASMOBJS = video/mmxidct.o
++  NASMOBJS = video/reconmmx.o
+ endif
+ 
+-
+-
+-
+-
+-
+ CFLAGS += \
+ 	-I. \
+-	-I$(A52DIR)/include \
+-	-I$(A52DIR)/liba52
+-
+-
+-
+-CFLAGS += -g
+-
+-
+-
+-
+-
+-
+-
+-
++	-I$(A52_INCLUDES)
+ 
++CFLAGS += $(ADD_CFLAGS)
+ 
+ OBJS = \
+-	$(OBJDIR)/audio/ac3.o \
+-	$(OBJDIR)/audio/dct.o \
+-	$(OBJDIR)/audio/huffman.o \
+-	$(OBJDIR)/audio/layer2.o \
+-	$(OBJDIR)/audio/layer3.o \
+-	$(OBJDIR)/audio/mpeg3audio.o \
+-	$(OBJDIR)/audio/pcm.o \
+-	$(OBJDIR)/audio/synthesizers.o \
+-	$(OBJDIR)/audio/tables.o \
+-	$(OBJDIR)/libmpeg3.o \
+-	$(OBJDIR)/mpeg3atrack.o \
+-	$(OBJDIR)/mpeg3bits.o \
+-	$(OBJDIR)/mpeg3css.o \
+-	$(OBJDIR)/mpeg3demux.o \
+-	$(OBJDIR)/mpeg3ifo.o \
+-	$(OBJDIR)/mpeg3io.o \
+-	$(OBJDIR)/mpeg3strack.o \
+-	$(OBJDIR)/mpeg3title.o \
+-	$(OBJDIR)/mpeg3tocutil.o \
+-	$(OBJDIR)/mpeg3vtrack.o \
+-	$(OBJDIR)/video/getpicture.o \
+-	$(OBJDIR)/video/headers.o \
+-	$(OBJDIR)/video/idct.o \
+-	$(OBJDIR)/video/macroblocks.o \
+-	$(OBJDIR)/video/mmxtest.o \
+-	$(OBJDIR)/video/motion.o \
+-	$(OBJDIR)/video/mpeg3cache.o \
+-	$(OBJDIR)/video/mpeg3video.o \
+-	$(OBJDIR)/video/output.o \
+-	$(OBJDIR)/video/reconstruct.o \
+-	$(OBJDIR)/video/seek.o \
+-	$(OBJDIR)/video/slice.o \
+-	$(OBJDIR)/video/subtitle.o \
+-	$(OBJDIR)/video/vlc.o \
+-	$(OBJDIR)/workarounds.o
+-
+-#OBJS = \
+-#	$(OBJDIR)/audio/ac3.o \
+-#	$(OBJDIR)/audio/bit_allocation.o \
+-#	$(OBJDIR)/audio/exponents.o \
+-#	$(OBJDIR)/audio/header.o \
+-#	$(OBJDIR)/audio/huffman.o \
+-#	$(OBJDIR)/audio/layer2.o \
+-#	$(OBJDIR)/audio/layer3.o \
+-#	$(OBJDIR)/audio/mantissa.o \
+-#	$(OBJDIR)/audio/pcm.o \
+-#	$(OBJDIR)/audio/tables.o \
+-
+-
+-
+-
+-DIRS := \
+-	$(OBJDIR)/audio \
+-	$(OBJDIR)/video
+-
+-include Makefile.a52
+-
+-DIRS += $(A52DIRS)
+-
+-
+-OUTPUT = $(OBJDIR)/libmpeg3.a
+-UTILS = $(OBJDIR)/mpeg3dump $(OBJDIR)/mpeg3peek $(OBJDIR)/mpeg3toc  $(OBJDIR)/mpeg3cat
+-
+-#$(OBJDIR)/mpeg3split
+-
+-
+-LIBS = -lm -lpthread
+-
+-$(shell mkdir -p $(OBJDIR) )
+-
+-$(shell echo $(CFLAGS) > $(OBJDIR)/c_flags)
+-$(shell echo $(A52CFLAGS) > $(OBJDIR)/a52_flags)
+-$(shell echo $(OBJS) $(ASMOBJS) $(A52OBJS) $(NASMOBJS) > $(OBJDIR)/objs)
+-$(shell mkdir -p $(DIRS) )
+-
+-all: $(OUTPUT) $(UTILS)
+-
+-
+-$(OUTPUT): $(OBJS) $(ASMOBJS) $(NASMOBJS) $(A52OBJS)
+-	ar rcs $(OUTPUT) `cat $(OBJDIR)/objs`
+-
+-
+-
+-$(OBJDIR)/mpeg3dump: $(OUTPUT) mpeg3dump.c
+-	$(CC) `cat $(OBJDIR)/c_flags` -o $(OBJDIR)/mpeg3dump mpeg3dump.c $(OUTPUT) $(LIBS)
+-
+-$(OBJDIR)/mpeg3peek: $(OUTPUT) mpeg3peek.c
+-	$(CC) `cat $(OBJDIR)/c_flags` -o $(OBJDIR)/mpeg3peek mpeg3peek.c $(OUTPUT) $(LIBS)
+-
+-$(OBJDIR)/mpeg3toc: $(OUTPUT) mpeg3toc.c
+-	$(CC) `cat $(OBJDIR)/c_flags` -o $(OBJDIR)/mpeg3toc mpeg3toc.c $(OUTPUT) $(LIBS)
+-
+-$(OBJDIR)/mpeg3cat: $(OUTPUT) mpeg3cat.c
+-	$(CC) `cat $(OBJDIR)/c_flags` -o $(OBJDIR)/mpeg3cat mpeg3cat.c $(OUTPUT) $(LIBS)
+-
+-#$(OBJDIR)/mpeg3split: $(OUTPUT)
+-#	$(CC) `cat $(OBJDIR)/c_flags` -o $(OBJDIR)/mpeg3split mpeg3split.c $(OUTPUT) $(LIBS)
+-
+-$(OBJDIR)/mpeg2qt: $(OUTPUT)
+-	$(CC) `cat $(OBJDIR)/c_flags` -o $(OBJDIR)/mpeg2qt mpeg2qt.c \
+-		$(OUTPUT) \
+-		$(LIBS) \
+-		-I. \
+-		-I../quicktime \
+-		../quicktime/$(OBJDIR)/libquicktime.a \
+-		-lpng \
+-		-lz \
+-		-ldl
+-
+-install: 
+-	cp $(UTILS) $(DST)
++	audio/ac3.o \
++	audio/dct.o \
++	audio/huffman.o \
++	audio/layer2.o \
++	audio/layer3.o \
++	audio/mpeg3audio.o \
++	audio/pcm.o \
++	audio/synthesizers.o \
++	audio/tables.o \
++	libmpeg3.o \
++	mpeg3atrack.o \
++	mpeg3bits.o \
++	mpeg3css.o \
++	mpeg3demux.o \
++	mpeg3ifo.o \
++	mpeg3io.o \
++	mpeg3strack.o \
++	mpeg3title.o \
++	mpeg3tocutil.o \
++	mpeg3vtrack.o \
++	video/getpicture.o \
++	video/headers.o \
++	video/idct.o \
++	video/macroblocks.o \
++	video/mmxtest.o \
++	video/motion.o \
++	video/mpeg3cache.o \
++	video/mpeg3video.o \
++	video/output.o \
++	video/reconstruct.o \
++	video/seek.o \
++	video/slice.o \
++	video/subtitle.o \
++	video/vlc.o \
++	workarounds.o
++
++ALLOBJS = $(OBJS) $(ASMOBJS) $(NASMOBJS)
++
++SHLIB=libmpeg3.so
++SHLIB_FULLNAME=$(SHLIB).$(version)
++
++SHAREDOUTPUT = $(SHLIB_FULLNAME)
++UTILS = mpeg3dump mpeg3peek mpeg3toc mpeg3cat mpeg2qt
++
++LIBS = -lm -lpthread -la52
++all: $(SHAREDOUTPUT) $(UTILS)
++
++$(SHAREDOUTPUT): $(ALLOBJS)
++	$(CC) -shared -fPIC -o $(SHAREDOUTPUT) $(LIBS) $(ALLOBJS) -Wl,-soname -Wl,$(SHLIB)
++
++mpeg3dump: $(SHAREDOUTPUT) mpeg3dump.c
++	$(CC) $(CFLAGS) -o mpeg3dump mpeg3dump.c $(SHAREDOUTPUT) $(LIBS)
++
++mpeg3peek: $(SHAREDOUTPUT) mpeg3peek.c
++	$(CC) $(CFLAGS) -o mpeg3peek mpeg3peek.c $(SHAREDOUTPUT) $(LIBS)
++
++mpeg3toc: $(SHAREDOUTPUT) mpeg3toc.c
++	$(CC) $(CFLAGS) -o mpeg3toc mpeg3toc.c $(SHAREDOUTPUT) $(LIBS)
++
++mpeg3cat: $(SHAREDOUTPUT) mpeg3cat.c
++	$(CC) $(CFLAGS) -o mpeg3cat mpeg3cat.c $(SHAREDOUTPUT) $(LIBS)
++
++#mpeg3split: $(SHAREDOUTPUT)
++#	$(CC) $(CFLAGS) -o mpeg3split mpeg3split.c $(SHAREDOUTPUT) $(LIBS)
++
++mpeg2qt: $(SHAREDOUTPUT) mpeg2qt.c
++	$(CC) $(CFLAGS) -I. -I$(LQT_INCLUDES) $(LIBS) -lquicktime -lpng -lz -ldl $(SHAREDOUTPUT) -o mpeg2qt mpeg2qt.c
++
++install: $(SHAREDOUTPUT) $(UTILS)
++	install -d $(DESTDIR)/$(PREFIX)/bin
++	install -m 755 $(UTILS) $(DESTDIR)/$(PREFIX)/bin
++
++	install -d $(DESTDIR)/$(PREFIX)/lib
++	install -m 644 $(SHAREDOUTPUT) $(DESTDIR)/$(PREFIX)/lib
++	ln -s $(DESTDIR)/$(PREFIX)/lib/$(SHLIB_FULLNAME) $(DESTDIR)/$(PREFIX)/lib/$(SHLIB).$(major)
++	ln -s $(DESTDIR)/$(PREFIX)/lib/$(SHLIB_FULLNAME) $(DESTDIR)/$(PREFIX)/lib/$(SHLIB)
++
++	install -d $(DESTDIR)/$(PREFIX)/include/audio
++	install -d $(DESTDIR)/$(PREFIX)/include/video
++	install -m 644 *.h $(DESTDIR)/$(PREFIX)/include
++	install -m 644 audio/*.h $(DESTDIR)/$(PREFIX)/include/audio
++	install -m 644 video/*.h $(DESTDIR)/$(PREFIX)/include/video
+ 
+ clean:
+-	rm -rf $(OBJDIR)
++	rm -rf *.o audio/*.o video/*.o
++	rm -rf $(SHAREDOUTPUT)
++	rm -rf $(UTILS)
+ 
+ backup: clean
+ 	cd .. && \
+@@ -204,57 +135,52 @@
+ 	cat *.c *.h audio/*.c audio/*.h video/*.c video/*.h | wc
+ 
+ $(OBJS): 
+-	$(CC) -c `cat $(OBJDIR)/c_flags` $(subst $(OBJDIR)/,, $*.c) -o $*.o
++	$(CC) -c $(CFLAGS) -fPIC $*.c -o $*.o
+ $(ASMOBJS): 
+-	$(CC) -c `cat $(OBJDIR)/c_flags` $(subst $(OBJDIR)/,, $*.S) -o $*.o
++	$(CC) -c $(CFLAGS) $*.S -o $*.o
+ $(NASMOBJS): 
+-	$(NASM) -f elf $(subst $(OBJDIR)/,, $*.s) -o $*.o
+-$(A52OBJS):
+-	$(CC) -c `cat $(OBJDIR)/a52_flags` $(subst $(OBJDIR)/,, $*.c) -o $*.o
+-
+-$(OBJDIR)/libmpeg3.o: 				    libmpeg3.c
+-$(OBJDIR)/mpeg3atrack.o: 			    mpeg3atrack.c
+-$(OBJDIR)/mpeg3bits.o:  			    mpeg3bits.c
+-$(OBJDIR)/mpeg3css.o: 				    mpeg3css.c
+-$(OBJDIR)/mpeg3demux.o: 			    mpeg3demux.c
+-$(OBJDIR)/mpeg3dump.o: 				    mpeg3dump.c
+-$(OBJDIR)/mpeg3ifo.o: 				    mpeg3ifo.c
+-$(OBJDIR)/mpeg3io.o: 				    mpeg3io.c
+-$(OBJDIR)/mpeg3strack.o:                            mpeg3strack.c
+-$(OBJDIR)/mpeg3title.o: 			    mpeg3title.c
+-$(OBJDIR)/mpeg3toc3.o:  			    mpeg3toc3.c
+-$(OBJDIR)/mpeg3toc.o: 				    mpeg3toc.c
+-$(OBJDIR)/mpeg3tocutil.o:                           mpeg3tocutil.c
+-$(OBJDIR)/mpeg3vtrack.o: 			    mpeg3vtrack.c
+-$(OBJDIR)/audio/ac3.o:  			    audio/ac3.c
+-$(OBJDIR)/audio/bit_allocation.o: 		    audio/bit_allocation.c
+-$(OBJDIR)/audio/dct.o:  			    audio/dct.c
+-$(OBJDIR)/audio/exponents.o: 			    audio/exponents.c
+-$(OBJDIR)/audio/header.o: 			    audio/header.c
+-$(OBJDIR)/audio/huffman.o: 			    audio/huffman.c
+-$(OBJDIR)/audio/layer2.o: 			    audio/layer2.c
+-$(OBJDIR)/audio/layer3.o: 			    audio/layer3.c
+-$(OBJDIR)/audio/mantissa.o: 			    audio/mantissa.c
+-$(OBJDIR)/audio/mpeg3audio.o: 			    audio/mpeg3audio.c
+-$(OBJDIR)/audio/pcm.o:  			    audio/pcm.c
+-$(OBJDIR)/audio/synthesizers.o: 		    audio/synthesizers.c
+-$(OBJDIR)/audio/tables.o: 			    audio/tables.c
+-$(OBJDIR)/video/getpicture.o: 			    video/getpicture.c
+-$(OBJDIR)/video/headers.o: 			    video/headers.c
+-$(OBJDIR)/video/idct.o: 			    video/idct.c
+-$(OBJDIR)/video/macroblocks.o:  		    video/macroblocks.c
+-$(OBJDIR)/video/mmxtest.o: 			    video/mmxtest.c
+-$(OBJDIR)/video/motion.o: 			    video/motion.c
+-$(OBJDIR)/video/mpeg3cache.o: 			    video/mpeg3cache.c
+-$(OBJDIR)/video/mpeg3video.o: 			    video/mpeg3video.c
+-$(OBJDIR)/video/output.o: 			    video/output.c
+-$(OBJDIR)/video/reconstruct.o:  		    video/reconstruct.c
+-$(OBJDIR)/video/seek.o: 			    video/seek.c
+-$(OBJDIR)/video/slice.o: 			    video/slice.c
+-$(OBJDIR)/video/subtitle.o:                         video/subtitle.c
+-$(OBJDIR)/video/vlc.o:  			    video/vlc.c
+-$(OBJDIR)/workarounds.o:  			    workarounds.c
+-
++	$(NASM) -f elf $*.s -o $*.o
+ 
++libmpeg3.o: 			    libmpeg3.c
++mpeg3atrack.o: 			    mpeg3atrack.c
++mpeg3bits.o:  			    mpeg3bits.c
++mpeg3css.o: 			    mpeg3css.c
++mpeg3demux.o: 			    mpeg3demux.c
++mpeg3dump.o: 			    mpeg3dump.c
++mpeg3ifo.o: 			    mpeg3ifo.c
++mpeg3io.o: 			    mpeg3io.c
++mpeg3strack.o: 			    mpeg3strack.c
++mpeg3title.o: 			    mpeg3title.c
++mpeg3toc3.o:  			    mpeg3toc3.c
++mpeg3toc.o: 			    mpeg3toc.c
++mpeg3tocutil.o: 		    mpeg3tocutil.c
++mpeg3vtrack.o: 			    mpeg3vtrack.c
++audio/ac3.o:  			    audio/ac3.c
++audio/bit_allocation.o: 	    audio/bit_allocation.c
++audio/dct.o:  			    audio/dct.c
++audio/exponents.o: 		    audio/exponents.c
++audio/header.o: 		    audio/header.c
++audio/huffman.o: 		    audio/huffman.c
++audio/layer2.o: 		    audio/layer2.c
++audio/layer3.o: 		    audio/layer3.c
++audio/mantissa.o: 		    audio/mantissa.c
++audio/mpeg3audio.o: 		    audio/mpeg3audio.c
++audio/pcm.o:  			    audio/pcm.c
++audio/synthesizers.o: 		    audio/synthesizers.c
++audio/tables.o: 		    audio/tables.c
++video/getpicture.o: 		    video/getpicture.c
++video/headers.o: 		    video/headers.c
++video/idct.o: 			    video/idct.c
++video/macroblocks.o:  		    video/macroblocks.c
++video/mmxtest.o: 		    video/mmxtest.c
++video/motion.o: 		    video/motion.c
++video/mpeg3cache.o: 		    video/mpeg3cache.c
++video/mpeg3video.o: 		    video/mpeg3video.c
++video/output.o: 		    video/output.c
++video/reconstruct.o:  		    video/reconstruct.c
++video/seek.o: 			    video/seek.c
++video/slice.o: 			    video/slice.c
++video/subtitle.o: 		    video/subtitle.c
++video/vlc.o:  			    video/vlc.c
++workarounds.o:  		    workarounds.c
+ 
+-include depend.a52
+# Compile PIC
+
+diff -N -r -U 3 libmpeg3-1.8-orig/audio/Makefile libmpeg3-1.8/audio/Makefile
+--- libmpeg3-1.8-orig/audio/Makefile	2007-01-09 09:09:51.000000000 +0200
++++ libmpeg3-1.8/audio/Makefile	2010-09-19 12:54:11.000000000 +0300
+@@ -18,7 +18,7 @@
+ all: $(OBJS)
+ 
+ .c.o:
+-	$(CC) -c `./c_flags` $*.c
++	$(CC) $(CFLAGS) -fPIC -c $*.c
+ 
+ .s.o:
+ 	$(CC) -f elf $*.s
+# Fix compilation errors and warnings
+
+diff -N -r -U 3 libmpeg3-1.8-orig/audio/ac3.c libmpeg3-1.8/audio/ac3.c
+--- libmpeg3-1.8-orig/audio/ac3.c	2008-06-23 11:16:28.000000000 +0300
++++ libmpeg3-1.8/audio/ac3.c	2010-09-19 13:43:09.000000000 +0300
+@@ -1,5 +1,6 @@
+ #include <stdint.h>
+ #include <stdio.h>
++#include <stdlib.h>
+ 
+ #include "a52.h"
+ #include "mpeg3private.h"
+# Fix compilation errors and warnings
+
+diff -N -r -U 3 libmpeg3-1.8-orig/audio/layer3.c libmpeg3-1.8/audio/layer3.c
+--- libmpeg3-1.8-orig/audio/layer3.c	2008-07-05 04:38:15.000000000 +0300
++++ libmpeg3-1.8/audio/layer3.c	2010-09-19 13:43:40.000000000 +0300
+@@ -1,11 +1,12 @@
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
+ #include "huffman.h"
+ #include "mpeg3private.h"
+ #include "mpeg3protos.h"
+ #include "tables.h"
+ 
+-#include <stdio.h>
+-#include <string.h>
+-
+ struct gr_info_s 
+ {
+       int scfsi;
+# Fix compilation errors and warnings
+
+diff -N -r -U 3 libmpeg3-1.8-orig/mpeg2qt.c libmpeg3-1.8/mpeg2qt.c
+--- libmpeg3-1.8-orig/mpeg2qt.c	2007-01-09 09:09:52.000000000 +0200
++++ libmpeg3-1.8/mpeg2qt.c	2010-09-19 13:38:25.000000000 +0300
+@@ -1,5 +1,7 @@
+-#include <pthread.h>
++#include <stdlib.h>
++#include <string.h>
+ #include <signal.h>
++#include <pthread.h>
+ 
+ #include "colormodels.h"
+ #include "libmpeg3.h"
+@@ -47,8 +49,9 @@
+ mpeg3_t *input;
+ pthread_mutex_t mutex;
+ int predicate = 0;
++int mpeg3err = 0;
+ 
+-void* trap_interrupt()
++void trap_interrupt(int i)
+ {
+ 	pthread_mutex_lock(&mutex);
+ 	if(!predicate)
+@@ -124,7 +127,8 @@
+ 	}
+ 
+ //printf("main 1\n");
+-	if(!(input = mpeg3_open(input_path)))
++	input = mpeg3_open(input_path, &mpeg3err);
++	if( mpeg3err != 0 )
+ 	{
+ 		exit(1);
+ 	}
+@@ -180,7 +184,7 @@
+ //printf("main 1\n");
+ 
+ //	quicktime_set_jpeg(output, 100, 0);
+-	mpeg3_set_mmx(input, 0);
++//	mpeg3_set_mmx(input, 0);
+ 
+ 	while((!(do_video && mpeg3_end_of_video(input, layer)) || 
+ 			!(do_audio && mpeg3_end_of_audio(input, astream))) &&
+# Compile PIC
+
+diff -N -r -U 3 libmpeg3-1.8-orig/video/Makefile libmpeg3-1.8/video/Makefile
+--- libmpeg3-1.8-orig/video/Makefile	2007-01-09 09:09:51.000000000 +0200
++++ libmpeg3-1.8/video/Makefile	2010-09-19 12:54:55.000000000 +0300
+@@ -19,7 +19,7 @@
+ all: $(OBJS) $(MMXOBJS2)
+ 
+ .c.o:
+-	$(CC) -c `./c_flags` $*.c
++	$(CC) $(CFLAGS) -fPIC -c $*.c
+ 
+ .s.o:
+ 	$(NASM) -f elf $*.s
