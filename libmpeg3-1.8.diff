@@ -1,5 +1,22 @@
 # Enable shared library build, dynamiclly link to a52 and libquicktime
-
+# Copyright (C) 2007-2020 Georgi D. Sotirov <gdsotirov@gmail.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Visit SlackPack at https://sotirov-bg.net/slackpack/
+#
 diff -N -r -U 3 libmpeg3-1.8-orig/Makefile libmpeg3-1.8/Makefile
 --- libmpeg3-1.8-orig/Makefile	2008-08-07 06:33:09.000000000 +0300
 +++ libmpeg3-1.8/Makefile	2010-09-19 14:33:39.000000000 +0300
